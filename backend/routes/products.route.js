@@ -3,7 +3,7 @@ const { authenticateUser } = require("../middlewares/checkToken")
 
 const router = require("express").Router()
 
-router.get("/products", getAllProducts)
+router.get("/products",getAllProducts)
 router.post("/products", authenticateUser, addProduct)
 router.put("/products", authenticateUser, editProduct)
 router.delete("/products", authenticateUser, deleteProduct)

@@ -1,11 +1,10 @@
-const { getAllPartners, requestPartner, addPartner } = require("../controllers/partner.controller")
+const { getAllPartners, requestPartner } = require("../controllers/partner.controller")
 const { authenticateUser } = require("../middlewares/checkToken")
 
-const router = require("express").Router
+const router = require("express").Router()
 
-router.get("/partner",authenticateUser,getAllPartners)
+router.get("/partner",getAllPartners)
 router.post("/partner",authenticateUser,requestPartner)
-router.post("/partner/add",authenticateUser,addPartner)
 
 
 

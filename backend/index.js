@@ -3,6 +3,7 @@ const dotenv = require("dotenv")
 const cors = require("cors")
 const userRoutes = require("./routes/user.route")
 const productRoutes = require("./routes/products.route")
+const partnerRoutes = require("./routes/partner.route")
 const cookieParser = require("cookie-parser")
 const app = express()
 dotenv.config()
@@ -18,6 +19,7 @@ app.use(cookieParser())
 
 app.use("/api/auth",userRoutes)
 app.use("/api",productRoutes)
+app.use("/api",partnerRoutes)
 
 app.get("/",(req,res)=>{
     res.send("Test Route")
