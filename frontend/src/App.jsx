@@ -1,35 +1,59 @@
-import { Route, Routes } from 'react-router-dom';
-import Navbar from './components/Navbar/Navbar';
-import Footer from './components/Footer/Footer';
-import Home from './pages/Home/HOme';
-import Login from './pages/Auth/Login/Login';
-import SignUp from './pages/Auth/SignUp/SignUp';
-import Partner from './pages/Partner/Partner';
-import Profile from './pages/Profile/Profile';
-import './styles/globals.css';
-import './App.css';
+import './App.css'
+import { Route, Routes } from 'react-router-dom'
+import SignUp from './pages/SignUp/SignUp'
+import Login from './pages/Login/Login'
+import Home from './pages/Home/Home'
+import { AuthProvider } from './Context/AuthContext'
+import RedirectIfAuthenticated from './RedirectIfAuthenticated.jsx'
+import ProtectedRoute from './ProtectRoute.jsx'
+import AllProducts from './pages/Products/AllProducts.jsx'
+import ProductDetails from './pages/Products/ProductDetails.jsx'
+import Profile from './pages/Profile/Profile.jsx'
+import Cart from './pages/Cart/Cart.jsx'
+import AddProduct from './pages/Products/AddProduct.jsx'
 
 function App() {
   return (
-    <div className="app">
-      <Navbar />
-      <main className="main-content">
+    <>
+      <AuthProvider>
         <Routes>
-          {/* Home Route */}
-          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<RedirectIfAuthenticated><Login /></RedirectIfAuthenticated>} />
+          <Route path="/signup" element={<RedirectIfAuthenticated><SignUp /></RedirectIfAuthenticated>} />
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Home />
 
-          {/* Auth Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
-
-          {/* Other Routes */}
-          <Route path="/partner" element={<Partner />} />
-          <Route path="/profile" element={<Profile />} />
+            </ProtectedRoute>
+          } />
+          <Route path="/products" element={
+            <ProtectedRoute>
+              <AllProducts/>
+            </ProtectedRoute>
+          } />
+          <Route path="/products/:id" element={
+            <ProtectedRoute>
+              <ProductDetails/>
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile/>
+            </ProtectedRoute>
+          } />
+          <Route path="/cart" element={
+            <ProtectedRoute>
+              <Cart/>
+            </ProtectedRoute>
+          } />
+          <Route path="/add/product" element={
+            <ProtectedRoute>
+              <AddProduct/>
+            </ProtectedRoute>
+          } />
         </Routes>
-      </main>
-      <Footer />
-    </div>
-  );
+      </AuthProvider>
+    </>
+  )
 }
 
-export default App;
+export default App

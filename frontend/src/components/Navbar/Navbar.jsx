@@ -1,87 +1,68 @@
-// Navbar.jsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import styles from './Navbar.module.css';
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { FiShoppingCart, FiUser, FiMenu, FiX } from "react-icons/fi";
+import { useAuth } from "../../Context/AuthContext";
 
-const Navbar = ({ onMenuClick, cartCount = 0 }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const navigate = useNavigate();
+const Navbar = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const { user } = useAuth()
 
-  const handleMobileMenuToggle = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
+  console.log(user)
+
+  const isAdmin = user?.role == "Admin";
 
   return (
-    <nav className={styles.navbar}>
-      <div className={styles.navContainer}>
-        {/* Sidebar Menu Button */}
-        <button 
-          className={styles.menuButton}
-          onClick={onMenuClick}
-          aria-label="Toggle Sidebar Menu"
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
+    <nav className="bg-white shadow-md">
+      <div className="container mx-auto px-4 py-6 flex justify-between items-center">
+        <Link to="/" className="text-2xl font-bold text-gray-900">
+          Logo
+        </Link>
 
-        {/* Logo Section */}
-        <div className={styles.logoContainer} onClick={() => navigate('/')}> 
-          <img src="/assets/images/logo.png" alt="Company Logo" className={styles.logo} />
+        <div className="hidden md:flex space-x-6">
+          <Link to="/products" className="hover:text-blue-600">
+            Our Products
+          </Link>
+          <Link to="/combos" className="hover:text-blue-600">
+            Combos
+          </Link>
+          <Link to="/cart" className="hover:text-blue-600 flex items-center">
+            <FiShoppingCart className="mr-1" /> Cart
+          </Link>
+          <Link to="/profile" className="hover:text-blue-600 flex items-center">
+            <FiUser className="mr-1" /> Profile
+          </Link>
+          { isAdmin &&
+            <Link to="/add/product" className="hover:text-blue-600 flex items-center">
+              <FiUser className="mr-1" /> Add Product
+            </Link>
+          }
         </div>
 
-        {/* Mobile Menu Button */}
-        <button 
-          className={`${styles.mobileMenuBtn} ${isMobileMenuOpen ? styles.active : ''}`}
-          onClick={handleMobileMenuToggle}
-        >
-          <span></span>
-          <span></span>
-          <span></span>
+
+        <button className="md:hidden text-gray-900" onClick={() => setIsOpen(!isOpen)}>
+          {isOpen ? <FiX size={24} /> : <FiMenu size={24} />}
         </button>
-
-        {/* Nav Links */}
-        <div className={`${styles.navLinks} ${isMobileMenuOpen ? styles.active : ''}`}>
-          <button className={styles.navButton} onClick={() => navigate('/combos')}>
-            Explore Combos
-          </button>
-
-          <button className={styles.navButton} onClick={() => navigate('/partner')}>
-            Become a Partner
-          </button>
-
-          {/* Cart Button */}
-          <button className={styles.cartButton} onClick={() => navigate('/cart')}>
-            <svg viewBox="0 0 24 24" className={styles.cartIcon}>
-              <path d="M9 22c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm7 0c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-7-3l-4-4H2V5h3l8 9h5l3-7h3l-4 9H9zm3-8V7H4" 
-                stroke="currentColor" 
-                fill="none" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              />
-            </svg>
-            {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
-          </button>
-
-          {/* Auth Section */}
-          {isLoggedIn ? (
-            <div className={styles.profileContainer}>
-              <img 
-                src="/assets/images/default-profile.png"
-                alt="Profile"
-                className={styles.profilePic}
-                onClick={() => navigate('/profile')}
-              />
-            </div>
-          ) : (
-            <button className={styles.authButton} onClick={() => navigate('/login')}>
-              Login / Sign Up
-            </button>
-          )}
-        </div>
       </div>
+
+
+      {isOpen && (
+        <div className="md:hidden bg-white shadow-md">
+          <div className="flex flex-col items-center space-y-4 py-4">
+            <Link to="/products" className="hover:text-blue-600" onClick={() => setIsOpen(false)}>
+              Our Products
+            </Link>
+            <Link to="/combos" className="hover:text-blue-600" onClick={() => setIsOpen(false)}>
+              Combos
+            </Link>
+            <Link to="/cart" className="hover:text-blue-600 flex items-center" onClick={() => setIsOpen(false)}>
+              <FiShoppingCart className="mr-1" /> Cart
+            </Link>
+            <Link to="/profile" className="hover:text-blue-600 flex items-center" onClick={() => setIsOpen(false)}>
+              <FiUser className="mr-1" /> Profile
+            </Link>
+          </div>
+        </div>
+      )}
     </nav>
   );
 };

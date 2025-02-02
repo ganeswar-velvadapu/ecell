@@ -3,7 +3,7 @@ const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// Sign Up function
+
 const SignUp = async (req, res) => {
     try {
         const { username, email, password } = req.body;
@@ -25,7 +25,7 @@ const SignUp = async (req, res) => {
             [username, email, hashPassword]
         );
         const token = generateJwt({
-            id: newUser.rows[0].id,
+            id: newUser.rows[0].user_id,
             username: newUser.rows[0].username,
             email: newUser.rows[0].email,
             rewardPoints : newUser.rows[0].rewardPoints,
@@ -43,14 +43,14 @@ const SignUp = async (req, res) => {
             user: newUser.rows[0],
         });
     } catch (error) {
-        console.error("SignUp Error:", error);
+        console.log("SignUp Error:", error);
         return res.status(500).json({
             message: "Internal server error. Try again after some time.",
         });
     }
 };
 
-// Login function
+
 const Login = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -72,14 +72,12 @@ const Login = async (req, res) => {
         if (!passwordCheck) {
             return res.status(400).json({ message: "Incorrect password" });
         }
-
-        console.log(user)
         const token = generateJwt({
-            id: user.id,
+            id: user.user_id,
             username: user.username,
             email: user.email,
             reward_points : user.reward_points,
-            role: user.role
+            role: user.role,
         });
         res.cookie("token", token, {
             httpOnly: true,
@@ -89,13 +87,13 @@ const Login = async (req, res) => {
 
         return res.json({ message: "Login Successful" });
     } catch (error) {
-        console.error("Login Error:", error);
+        console.log("Login Error:", error);
         return res.status(500).json({ message: "Internal server error. Try again after some time." });
     }
 };
 
 
-//Logout function
+
 const Logout = (req, res) => {
     res.clearCookie("token", {
         httpOnly: true,
@@ -107,7 +105,20 @@ const Logout = (req, res) => {
 };
 
 
-// JWT Token Generator
+const checkUser = (req,res) =>{
+    try {
+        const token = req.cookies.token; 
+        if (!token) {
+            return res.status(401).json({ message: "Not authenticated" });
+        }
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        res.json({ user: decoded }); 
+
+    } catch (error) {
+        return res.status(401).json({ message: "Invalid token" });
+    }
+}
+
 function generateJwt({ id, username, email,reward_points,role }) {
     return jwt.sign(
         { id, username, email,reward_points,role },
@@ -119,4 +130,4 @@ function generateJwt({ id, username, email,reward_points,role }) {
 
 
 
-module.exports = { Login, SignUp,Logout };
+module.exports = { Login, SignUp,Logout,checkUser };

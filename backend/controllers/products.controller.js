@@ -4,18 +4,33 @@ const getAllProducts = async (req, res) => {
     try {
         const queryProducts = await pool.query("SELECT * FROM products");
         const allProducts = queryProducts.rows;
-        console.log(allProducts);
         return res.json({
             message: "All Products",
             products: allProducts
         });
     } catch (error) {
-        console.error("Error fetching products:", error);
+        console.log("Error fetching products:", error);
         return res.status(500).json({
             message: "Internal Server Error."
         });
     }
 };
+
+const getSpecificProduct = async  (req,res)=>{
+    try {
+        const {productId} = req.params
+        const productQuery = await pool.query("select * from products where product_id = $1",[productId])
+        const product = productQuery.rows[0]
+        return res.json({
+            message : "Product Fetched",
+            product : product
+        })
+    } catch (error) {
+        return res.json({
+            message : "Internal Server Error"
+        })
+    }
+}
 
 const addProduct = async (req, res) => {
     try {
@@ -25,22 +40,22 @@ const addProduct = async (req, res) => {
         const actualUserQuery = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
         const actualUser = actualUserQuery.rows[0];
 
-        if (!actualUser.partner_status) {
+        if (actualUser.role != "Admin") {
             return res.status(403).json({
-                message: "Become a partner to add a product."
+                message: "You are not allowed to add product"
             });
         }
 
-        const { productPrice, productName, imageUrl, productDescription } = req.body;
-        if (!productDescription || !productName || !productPrice) {
+        const { productPrice, productName, imageUrl, productDescription, manufacturer } = req.body;
+        if (!productDescription || !productName || !productPrice || !manufacturer) {
             return res.status(400).json({
                 message: "Provide necessary details to add product."
             });
         }
 
         const product = await pool.query(
-            "INSERT INTO products (product_price, product_name, image_url, product_description, partner_id) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-            [productPrice, productName, imageUrl, productDescription, actualUser.user_id]
+            "INSERT INTO products (product_price, product_name, image_url, product_description, created_by,manufacturer) VALUES ($1, $2, $3, $4, $5,$6) RETURNING *",
+            [productPrice, productName, imageUrl, productDescription, actualUser.user_id,manufacturer]
         );
 
         return res.status(201).json({
@@ -48,7 +63,7 @@ const addProduct = async (req, res) => {
             product: product.rows[0]
         });
     } catch (error) {
-        console.error("Error adding product:", error);
+        console.log("Error adding product:", error);
         return res.status(500).json({
             message: "Internal Server Error."
         });
@@ -60,13 +75,14 @@ const editProduct = async (req, res) => {
         const user = req.user;
         const email = user.email;
         const { productId } = req.params;
+        console.log(productId)
         const { productPrice, productName, imageUrl, productDescription } = req.body;
 
         const actualUserQuery = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
         const actualUser = actualUserQuery.rows[0];
 
-        if (!actualUser.partner_status) {
-            return res.status(403).json({ message: "Only partners can update products." });
+        if (actualUser.role != "Admin") {
+            return res.status(403).json({ message: "You are not allowed to add product" });
         }
 
         const productQuery = await pool.query("SELECT * FROM products WHERE product_id = $1", [productId]);
@@ -75,7 +91,7 @@ const editProduct = async (req, res) => {
         }
 
         const product = productQuery.rows[0];
-        if (product.partner_id !== actualUser.user_id) {
+        if (product.created_by !== actualUser.user_id) {
             return res.status(403).json({ message: "You are not authorized to update this product." });
         }
 
@@ -89,7 +105,7 @@ const editProduct = async (req, res) => {
             product: updatedProduct.rows[0]
         });
     } catch (error) {
-        console.error("Error updating product:", error);
+        console.log("Error updating product:", error);
         return res.status(500).json({ message: "Internal Server Error." });
     }
 };
@@ -103,7 +119,7 @@ const deleteProduct = async (req, res) => {
         const actualUserQuery = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
         const actualUser = actualUserQuery.rows[0];
 
-        if (!actualUser.partner_status) {
+        if (actualUser.role != "Admin") {
             return res.status(403).json({ message: "Only partners can delete products." });
         }
 
@@ -113,17 +129,96 @@ const deleteProduct = async (req, res) => {
         }
 
         const product = productQuery.rows[0];
-        if (product.partner_id !== actualUser.user_id) {
+        if (product.created_by !== actualUser.user_id) {
             return res.status(403).json({ message: "You are not authorized to delete this product." });
         }
 
         await pool.query("DELETE FROM products WHERE product_id = $1", [productId]);
 
-        return res.json({ message: "Product deleted successfully." });
+    return res.json({ message: "Product deleted successfully." })
     } catch (error) {
-        console.error("Error deleting product:", error);
+        console.log("Error deleting product:", error);
+        return res.status(500).json({ message: "Internal Server Error." });
+    }
+};
+const addToCart = async (req, res) => {
+    try {
+        const user = req.user;
+        const userId = user.id;
+        const { productId } = req.params;
+
+        const productQuery = await pool.query("SELECT * FROM products WHERE product_id = $1", [productId]);
+        if (productQuery.rows.length === 0) {
+            return res.status(404).json({ message: "Product not found." });
+        }
+
+        const userCartQuery = await pool.query("SELECT * FROM cart WHERE user_id = $1", [userId]);
+
+        if (userCartQuery.rows.length === 0) {
+            const newCart = await pool.query(
+                "INSERT INTO cart (user_id, products) VALUES ($1, $2) RETURNING *",
+                [userId, JSON.stringify([productId])]
+            );
+            return res.json({ message: "Product added to cart", cart: newCart.rows[0] });
+        } else {
+            const cart = userCartQuery.rows[0];
+            const existingProducts = cart.products || []; 
+
+            if (existingProducts.includes(productId)) {
+                return res.status(400).json({ message: "Product already exists in cart." });
+            }
+
+            const updatedCart = await pool.query(
+                `UPDATE cart 
+                 SET products = products || $1::jsonb 
+                 WHERE user_id = $2 RETURNING *`,
+                [JSON.stringify([productId]), userId]
+            );
+
+            return res.json({ message: "Product added to cart successfully", cart: updatedCart.rows[0] });
+        }
+    } catch (error) {
+        console.log("Add to Cart Error:", error);
         return res.status(500).json({ message: "Internal Server Error." });
     }
 };
 
-module.exports = { getAllProducts, addProduct, editProduct, deleteProduct };
+const deleteFromCart = async (req, res) => {
+    try {
+        const user = req.user; 
+        const userId = user.id; 
+        const { productId } = req.params;
+
+        const userCartQuery = await pool.query("SELECT * FROM cart WHERE user_id = $1", [userId]);
+
+        if (userCartQuery.rows.length === 0) {
+            return res.status(404).json({ message: "Cart is empty or user does not have a cart." });
+        }
+
+        const cartProducts = userCartQuery.rows[0].products;
+
+        if (!cartProducts.some(id => id === productId)) {
+            return res.status(400).json({ message: "Product not found in cart." });
+        }
+
+        const updatedCart = await pool.query(
+            `UPDATE cart 
+             SET products = products - $1
+             WHERE user_id = $2 
+             RETURNING *`,
+            [productId, userId]
+        );
+
+        return res.json({ message: "Product removed from cart successfully", cart: updatedCart.rows[0] });
+    } catch (error) {
+        console.log("Delete from Cart Error:", error);
+        return res.status(500).json({ message: "Internal Server Error." });
+    }
+};
+
+const getAllProductsFromCart = async (req, res) => {
+    
+};
+
+
+module.exports = { getAllProducts, addProduct, editProduct, deleteProduct,getSpecificProduct,addToCart,deleteFromCart,getAllProductsFromCart };

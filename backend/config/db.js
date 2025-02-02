@@ -9,6 +9,6 @@ const pool = new Pool({
 });
 
 pool.connect().then(res => console.log("Connected to Neon PostgreSQL"))
-    .catch(err => console.error("Error connecting to the database", err));
+    .catch(err => console.log("Error connecting to the database", err));
 
 module.exports = pool;

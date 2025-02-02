@@ -3,23 +3,25 @@ const dotenv = require("dotenv")
 const cors = require("cors")
 const userRoutes = require("./routes/user.route")
 const productRoutes = require("./routes/products.route")
-const partnerRoutes = require("./routes/partner.route")
 const cookieParser = require("cookie-parser")
 const app = express()
 dotenv.config()
 
 
+const corsOptions = {
+    origin: "http://localhost:5173", 
+    methods: "GET,POST,PUT,DELETE,OPTIONS", 
+    credentials: true, 
+}
+
 //middlewares
-app.use(cors())
+app.use(cors(corsOptions))
 app.use(express.json())
 app.use(cookieParser())
 
 
-
-
 app.use("/api/auth",userRoutes)
 app.use("/api",productRoutes)
-app.use("/api",partnerRoutes)
 
 app.get("/",(req,res)=>{
     res.send("Test Route")
