@@ -9,8 +9,9 @@ import ProtectedRoute from './ProtectRoute.jsx'
 import AllProducts from './pages/Products/AllProducts.jsx'
 import ProductDetails from './pages/Products/ProductDetails.jsx'
 import Profile from './pages/Profile/Profile.jsx'
-import Cart from './pages/Cart/Cart.jsx'
 import AddProduct from './pages/Products/AddProduct.jsx'
+import MyOrders from './pages/Products/MyOrders.jsx'
+import OrderRequest from './pages/Products/OrderRequest.jsx'
 
 function App() {
   return (
@@ -40,14 +41,19 @@ function App() {
               <Profile/>
             </ProtectedRoute>
           } />
-          <Route path="/cart" element={
-            <ProtectedRoute>
-              <Cart/>
-            </ProtectedRoute>
-          } />
           <Route path="/add/product" element={
             <ProtectedRoute>
               <AddProduct/>
+            </ProtectedRoute>
+          } />
+           <Route path="/orders" element={
+            <ProtectedRoute>
+              <MyOrders/>
+            </ProtectedRoute>
+          } />
+          <Route path="/requests" element={
+            <ProtectedRoute>
+              <OrderRequest/>
             </ProtectedRoute>
           } />
         </Routes>

@@ -19,7 +19,6 @@ const Footer = () => {
         </div>
 
         <div className="flex space-x-4 mt-4 md:mt-0">
-          {/* Facebook icon */}
           <a href="#" className="text-gray-400 hover:text-white transition-colors">
             <div className="w-5 h-5 flex items-center justify-center">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -27,7 +26,6 @@ const Footer = () => {
               </svg>
             </div>
           </a>
-          {/* Instagram icon */}
           <a href="#" className="text-gray-400 hover:text-white transition-colors">
             <div className="w-5 h-5 flex items-center justify-center">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -37,7 +35,6 @@ const Footer = () => {
               </svg>
             </div>
           </a>
-          {/* Twitter icon */}
           <a href="#" className="text-gray-400 hover:text-white transition-colors">
             <div className="w-5 h-5 flex items-center justify-center">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

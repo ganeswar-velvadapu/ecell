@@ -16,18 +16,18 @@ const getAllProducts = async (req, res) => {
     }
 };
 
-const getSpecificProduct = async  (req,res)=>{
+const getSpecificProduct = async (req, res) => {
     try {
-        const {productId} = req.params
-        const productQuery = await pool.query("select * from products where product_id = $1",[productId])
+        const { productId } = req.params
+        const productQuery = await pool.query("select * from products where product_id = $1", [productId])
         const product = productQuery.rows[0]
         return res.json({
-            message : "Product Fetched",
-            product : product
+            message: "Product Fetched",
+            product: product
         })
     } catch (error) {
         return res.json({
-            message : "Internal Server Error"
+            message: "Internal Server Error"
         })
     }
 }
@@ -55,7 +55,7 @@ const addProduct = async (req, res) => {
 
         const product = await pool.query(
             "INSERT INTO products (product_price, product_name, image_url, product_description, created_by,manufacturer) VALUES ($1, $2, $3, $4, $5,$6) RETURNING *",
-            [productPrice, productName, imageUrl, productDescription, actualUser.user_id,manufacturer]
+            [productPrice, productName, imageUrl, productDescription, actualUser.user_id, manufacturer]
         );
 
         return res.status(201).json({
@@ -75,8 +75,7 @@ const editProduct = async (req, res) => {
         const user = req.user;
         const email = user.email;
         const { productId } = req.params;
-        console.log(productId)
-        const { productPrice, productName, imageUrl, productDescription } = req.body;
+        const { product_price, product_name, image_url, product_description } = req.body;
 
         const actualUserQuery = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
         const actualUser = actualUserQuery.rows[0];
@@ -97,7 +96,7 @@ const editProduct = async (req, res) => {
 
         const updatedProduct = await pool.query(
             "UPDATE products SET product_price = $1, product_name = $2, image_url = $3, product_description = $4 WHERE product_id = $5 RETURNING *",
-            [productPrice, productName, imageUrl, productDescription, productId]
+            [product_price, product_name, image_url, product_description, productId]
         );
 
         return res.json({
@@ -135,90 +134,241 @@ const deleteProduct = async (req, res) => {
 
         await pool.query("DELETE FROM products WHERE product_id = $1", [productId]);
 
-    return res.json({ message: "Product deleted successfully." })
+        return res.json({ message: "Product deleted successfully." })
     } catch (error) {
         console.log("Error deleting product:", error);
         return res.status(500).json({ message: "Internal Server Error." });
     }
 };
-const addToCart = async (req, res) => {
+
+const buyProduct = async (req, res) => {
     try {
         const user = req.user;
-        const userId = user.id;
-        const { productId } = req.params;
+        const email = user.email;
+        const { id } = req.params;
+        const { mobile, address } = req.body;
 
-        const productQuery = await pool.query("SELECT * FROM products WHERE product_id = $1", [productId]);
-        if (productQuery.rows.length === 0) {
-            return res.status(404).json({ message: "Product not found." });
+        if (!mobile || !address) {
+            return res.status(400).json({ message: "Enter user details." });
         }
 
-        const userCartQuery = await pool.query("SELECT * FROM cart WHERE user_id = $1", [userId]);
-
-        if (userCartQuery.rows.length === 0) {
-            const newCart = await pool.query(
-                "INSERT INTO cart (user_id, products) VALUES ($1, $2) RETURNING *",
-                [userId, JSON.stringify([productId])]
-            );
-            return res.json({ message: "Product added to cart", cart: newCart.rows[0] });
-        } else {
-            const cart = userCartQuery.rows[0];
-            const existingProducts = cart.products || []; 
-
-            if (existingProducts.includes(productId)) {
-                return res.status(400).json({ message: "Product already exists in cart." });
-            }
-
-            const updatedCart = await pool.query(
-                `UPDATE cart 
-                 SET products = products || $1::jsonb 
-                 WHERE user_id = $2 RETURNING *`,
-                [JSON.stringify([productId]), userId]
-            );
-
-            return res.json({ message: "Product added to cart successfully", cart: updatedCart.rows[0] });
+        const actualUserQuery = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+        if (actualUserQuery.rowCount === 0) {
+            return res.status(404).json({ message: "User not found" });
         }
-    } catch (error) {
-        console.log("Add to Cart Error:", error);
-        return res.status(500).json({ message: "Internal Server Error." });
-    }
-};
+        const actualUser = actualUserQuery.rows[0];
 
-const deleteFromCart = async (req, res) => {
-    try {
-        const user = req.user; 
-        const userId = user.id; 
-        const { productId } = req.params;
+        const productQuery = await pool.query("SELECT * FROM products WHERE product_id = $1", [id]);
+        if (productQuery.rowCount === 0) {
+            return res.status(404).json({ message: "Product not found" });
+        }
+        const product = productQuery.rows[0];
 
-        const userCartQuery = await pool.query("SELECT * FROM cart WHERE user_id = $1", [userId]);
-
-        if (userCartQuery.rows.length === 0) {
-            return res.status(404).json({ message: "Cart is empty or user does not have a cart." });
+        const productCreatorId = product.created_by;
+        if (!productCreatorId) {
+            return res.status(400).json({ message: "Product creator not found." });
         }
 
-        const cartProducts = userCartQuery.rows[0].products;
+        const adminQuery = await pool.query("SELECT * FROM users WHERE user_id = $1", [productCreatorId]);
+        if (adminQuery.rowCount === 0) {
+            return res.status(404).json({ message: "Product creator (admin) not found" });
+        }
+        const admin = adminQuery.rows[0];
 
-        if (!cartProducts.some(id => id === productId)) {
-            return res.status(400).json({ message: "Product not found in cart." });
+        let userOrders = actualUser.orders || [];
+        if (typeof userOrders === "string") {
+            userOrders = JSON.parse(userOrders);
         }
 
-        const updatedCart = await pool.query(
-            `UPDATE cart 
-             SET products = products - $1
-             WHERE user_id = $2 
-             RETURNING *`,
-            [productId, userId]
+        let adminOrders = admin.order_requests || [];
+        if (typeof adminOrders === "string") {
+            adminOrders = JSON.parse(adminOrders);
+        }
+        const newOrder = {
+            product_id: product.product_id,
+            product_name: product.product_name,
+            price: product.product_price - (user.reward_points) / 10,
+            buyer_email: email,
+            mobile,
+            address,
+            order_id: new Date().toISOString()
+        };
+
+
+        userOrders.push(newOrder);
+
+        adminOrders.push(newOrder);
+
+        const newRewardPoints = (actualUser.reward_points || 0) + 10;
+
+
+        await pool.query(
+            `UPDATE users 
+             SET orders = $1::jsonb, 
+                 reward_points = $2
+             WHERE user_id = $3`,
+            [JSON.stringify(userOrders), newRewardPoints, actualUser.user_id]
         );
 
-        return res.json({ message: "Product removed from cart successfully", cart: updatedCart.rows[0] });
+        await pool.query(
+            `UPDATE users 
+             SET order_requests = $1::jsonb 
+             WHERE user_id = $2`,
+            [JSON.stringify(adminOrders), productCreatorId]
+        );
+
+
+        return res.status(200).json({
+            message: "Order placed successfully",
+            order: newOrder,
+            total_orders: userOrders.length,
+            reward_points: newRewardPoints
+        });
+
     } catch (error) {
-        console.log("Delete from Cart Error:", error);
-        return res.status(500).json({ message: "Internal Server Error." });
+        await pool.query("ROLLBACK");
+        console.error("Error buying product:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
     }
 };
 
-const getAllProductsFromCart = async (req, res) => {
-    
+const getOrders = async (req, res) => {
+    try {
+        const user = req.user;
+        const actualOrderQuery = await pool.query(
+            "SELECT orders FROM users WHERE user_id = $1",
+            [user.id]
+        );
+        if (actualOrderQuery.rowCount === 0) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        let orders = actualOrderQuery.rows[0].orders || [];
+        if (typeof orders === "string") {
+            orders = JSON.parse(orders);
+        }
+        return res.status(200).json({
+            message: "Orders retrieved successfully",
+            orders,
+            total_orders: orders.length,
+        });
+    } catch (error) {
+        console.error("Error retrieving orders:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+const cancelOrder = async (req, res) => {
+    try {
+        const user = req.user;
+        const { orderId } = req.params;
+
+        // Fetch the user's orders
+        const userOrderQuery = await pool.query(
+            "SELECT orders FROM users WHERE user_id = $1",
+            [user.id]
+        );
+
+        if (userOrderQuery.rowCount === 0) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        let orders = userOrderQuery.rows[0].orders || [];
+        if (typeof orders === "string") {
+            orders = JSON.parse(orders);
+        }
+
+        // Find the index of the order to be canceled
+        const orderIndex = orders.findIndex(order => order.product_id === orderId);
+        if (orderIndex === -1) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        // Remove the order from the user's list
+        orders.splice(orderIndex, 1);
+
+        // Deduct 10 reward points from the user
+        const updatedUserQuery = await pool.query(
+            "UPDATE users SET orders = $1, reward_points = reward_points - 10 WHERE user_id = $2 RETURNING *",
+            [JSON.stringify(orders), user.id]
+        );
+
+        if (updatedUserQuery.rowCount === 0) {
+            return res.status(500).json({ message: "Failed to update user orders and reward points" });
+        }
+
+        // Fetch the product details to find the creator
+        const productQuery = await pool.query(
+            "SELECT * FROM products WHERE product_id = $1",
+            [orderId]
+        );
+
+        if (productQuery.rowCount === 0) {
+            return res.status(404).json({ message: "Product not found" });
+        }
+
+        const creatorId = productQuery.rows[0].created_by;
+
+        // Fetch the creator's order_requests (assuming it's stored in `order_requests`)
+        const creatorOrderQuery = await pool.query(
+            "SELECT order_requests FROM users WHERE user_id = $1",
+            [creatorId]
+        );
+
+        if (creatorOrderQuery.rowCount === 0) {
+            return res.status(404).json({ message: "Creator not found" });
+        }
+
+        let creatorOrders = creatorOrderQuery.rows[0].order_requests || [];
+        if (typeof creatorOrders === "string") {
+            creatorOrders = JSON.parse(creatorOrders);
+        }
+
+        // Remove the canceled order from the creator's order_requests list
+        creatorOrders = creatorOrders.filter(order => order.product_id !== orderId);
+
+        // Update the creator's order_requests in the database
+        const updatedCreatorQuery = await pool.query(
+            "UPDATE users SET order_requests = $1 WHERE user_id = $2 RETURNING *",
+            [JSON.stringify(creatorOrders), creatorId]
+        );
+
+        if (updatedCreatorQuery.rowCount === 0) {
+            return res.status(500).json({ message: "Failed to update creator order_requests" });
+        }
+
+        // Return a success response
+        return res.status(200).json({
+            message: "Order canceled successfully and reward points deducted",
+            orders: orders,
+            total_orders: orders.length,
+        });
+
+    } catch (error) {
+        console.error("Error canceling order:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
 };
 
+const getOrderRequests = async (req, res) => {
+    try {
+        const userID = req.user.id
 
-module.exports = { getAllProducts, addProduct, editProduct, deleteProduct,getSpecificProduct,addToCart,deleteFromCart,getAllProductsFromCart };
+        const actualUserQuery = await pool.query("SELECT * FROM users WHERE user_id = $1", [userID]);
+        const actualUser = actualUserQuery.rows[0];
+
+        return res.json({
+            message: "Order requests fetched",
+            requests: actualUser.order_requests
+        })
+
+    } catch (error) {
+        console.log(error)
+        return res.json({
+            message: "Internal Server Error."
+        })
+    }
+}
+
+
+
+module.exports = { getAllProducts, addProduct, editProduct, deleteProduct, getSpecificProduct, buyProduct, getOrders, cancelOrder, getOrderRequests };

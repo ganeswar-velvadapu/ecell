@@ -6,12 +6,15 @@ const Login = () => {
 
     const [email,setEmail] = useState("")
     const [password,setPassword] = useState("")
+    const [loading,setLoading] = useState(false)
 
     const {login} = useAuth()
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true)
         await login(email, password);
+        setLoading(false)
       };
 
     
@@ -45,14 +48,16 @@ const Login = () => {
                     </div>
                     <button
                         type="submit"
-                        className="w-full px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition hover:cursor-pointer"
+                        className="w-full px-4 py-2 text-white bg-black rounded-md hover:bg-gray-800 transition hover:cursor-pointer"
                     >
-                        Login
+                        {
+                            loading ? "loading.." : "Loading"
+                        }
                     </button>
                 </form>
                 <p className="mt-4 text-sm text-center text-gray-600">
                     Don't have an account?{" "}
-                    <Link to="/signup" className="text-blue-600 hover:underline">
+                    <Link to="/signup" className="text-black hover:underline">
                         Sign Up
                     </Link>
                 </p>

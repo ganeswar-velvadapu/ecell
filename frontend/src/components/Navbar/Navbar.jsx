@@ -7,8 +7,6 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth()
 
-  console.log(user)
-
   const isAdmin = user?.role == "Admin";
 
   return (
@@ -23,19 +21,24 @@ const Navbar = () => {
             Our Products
           </Link>
           <Link to="/combos" className="hover:text-blue-600">
-            Combos
-          </Link>
-          <Link to="/cart" className="hover:text-blue-600 flex items-center">
-            <FiShoppingCart className="mr-1" /> Cart
+            Explore Combos
           </Link>
           <Link to="/profile" className="hover:text-blue-600 flex items-center">
             <FiUser className="mr-1" /> Profile
           </Link>
-          { isAdmin &&
+          <Link to="/orders" className="hover:text-blue-600 flex items-center">
+            My Orders
+          </Link>
+          {isAdmin &&
             <Link to="/add/product" className="hover:text-blue-600 flex items-center">
-              <FiUser className="mr-1" /> Add Product
+              Add Product
             </Link>
           }
+           {isAdmin &&
+              <Link to="/requests" className="hover:text-blue-600 flex items-center">
+                Order Requests
+              </Link>
+            }
         </div>
 
 
@@ -51,15 +54,25 @@ const Navbar = () => {
             <Link to="/products" className="hover:text-blue-600" onClick={() => setIsOpen(false)}>
               Our Products
             </Link>
-            <Link to="/combos" className="hover:text-blue-600" onClick={() => setIsOpen(false)}>
-              Combos
-            </Link>
-            <Link to="/cart" className="hover:text-blue-600 flex items-center" onClick={() => setIsOpen(false)}>
-              <FiShoppingCart className="mr-1" /> Cart
+            <Link to="/combos" className="hover:text-blue-600">
+            Explore Combos
+          </Link>
+            <Link to="/orders" className="hover:text-blue-600 flex items-center">
+              My Orders
             </Link>
             <Link to="/profile" className="hover:text-blue-600 flex items-center" onClick={() => setIsOpen(false)}>
               <FiUser className="mr-1" /> Profile
             </Link>
+            {isAdmin &&
+              <Link to="/add/product" className="hover:text-blue-600 flex items-center">
+                Add Product
+              </Link>
+            }
+            {isAdmin &&
+              <Link to="/requests" className="hover:text-blue-600 flex items-center">
+                Order Requests
+              </Link>
+            }
           </div>
         </div>
       )}
