@@ -46,16 +46,16 @@ const addProduct = async (req, res) => {
             });
         }
 
-        const { productPrice, productName, imageUrl, productDescription, manufacturer } = req.body;
-        if (!productDescription || !productName || !productPrice || !manufacturer) {
+        const { productPrice, productName, imageUrl, productDescription, manufacturer,isComboOffer } = req.body;
+        if (!productDescription || !productName || !productPrice || !manufacturer || !isComboOffer) {
             return res.status(400).json({
                 message: "Provide necessary details to add product."
             });
         }
 
         const product = await pool.query(
-            "INSERT INTO products (product_price, product_name, image_url, product_description, created_by,manufacturer) VALUES ($1, $2, $3, $4, $5,$6) RETURNING *",
-            [productPrice, productName, imageUrl, productDescription, actualUser.user_id, manufacturer]
+            "INSERT INTO products (product_price, product_name, image_url, product_description, created_by,manufacturer,combo) VALUES ($1, $2, $3, $4, $5,$6,$7) RETURNING *",
+            [productPrice, productName, imageUrl, productDescription, actualUser.user_id, manufacturer,isComboOffer]
         );
 
         return res.status(201).json({
@@ -257,48 +257,35 @@ const getOrders = async (req, res) => {
         return res.status(500).json({ message: "Internal Server Error" });
     }
 };
+
 const cancelOrder = async (req, res) => {
     try {
         const user = req.user;
         const { orderId } = req.params;
-
-        // Fetch the user's orders
-        const userOrderQuery = await pool.query(
-            "SELECT orders FROM users WHERE user_id = $1",
+        const userQuery = await pool.query(
+            "SELECT orders, reward_points FROM users WHERE user_id = $1",
             [user.id]
         );
 
-        if (userOrderQuery.rowCount === 0) {
+        if (userQuery.rowCount === 0) {
             return res.status(404).json({ message: "User not found" });
         }
 
-        let orders = userOrderQuery.rows[0].orders || [];
+        let orders = userQuery.rows[0].orders || [];
+        let rewardPoints = userQuery.rows[0].reward_points || 0;
+
         if (typeof orders === "string") {
             orders = JSON.parse(orders);
         }
-
-        // Find the index of the order to be canceled
         const orderIndex = orders.findIndex(order => order.product_id === orderId);
         if (orderIndex === -1) {
             return res.status(404).json({ message: "Order not found" });
         }
-
-        // Remove the order from the user's list
         orders.splice(orderIndex, 1);
+        rewardPoints = Math.max(0, rewardPoints - 10); 
 
-        // Deduct 10 reward points from the user
-        const updatedUserQuery = await pool.query(
-            "UPDATE users SET orders = $1, reward_points = reward_points - 10 WHERE user_id = $2 RETURNING *",
-            [JSON.stringify(orders), user.id]
-        );
-
-        if (updatedUserQuery.rowCount === 0) {
-            return res.status(500).json({ message: "Failed to update user orders and reward points" });
-        }
-
-        // Fetch the product details to find the creator
         const productQuery = await pool.query(
-            "SELECT * FROM products WHERE product_id = $1",
+            "SELECT created_by FROM products WHERE product_id = $1",
             [orderId]
         );
 
@@ -308,39 +295,49 @@ const cancelOrder = async (req, res) => {
 
         const creatorId = productQuery.rows[0].created_by;
 
-        // Fetch the creator's order_requests (assuming it's stored in `order_requests`)
-        const creatorOrderQuery = await pool.query(
+        const creatorQuery = await pool.query(
             "SELECT order_requests FROM users WHERE user_id = $1",
             [creatorId]
         );
 
-        if (creatorOrderQuery.rowCount === 0) {
+        if (creatorQuery.rowCount === 0) {
             return res.status(404).json({ message: "Creator not found" });
         }
 
-        let creatorOrders = creatorOrderQuery.rows[0].order_requests || [];
+        let creatorOrders = creatorQuery.rows[0].order_requests || [];
         if (typeof creatorOrders === "string") {
             creatorOrders = JSON.parse(creatorOrders);
         }
 
-        // Remove the canceled order from the creator's order_requests list
         creatorOrders = creatorOrders.filter(order => order.product_id !== orderId);
 
-        // Update the creator's order_requests in the database
-        const updatedCreatorQuery = await pool.query(
-            "UPDATE users SET order_requests = $1 WHERE user_id = $2 RETURNING *",
-            [JSON.stringify(creatorOrders), creatorId]
-        );
+        const client = await pool.connect();
+        try {
+            await client.query("BEGIN");
 
-        if (updatedCreatorQuery.rowCount === 0) {
-            return res.status(500).json({ message: "Failed to update creator order_requests" });
+            await client.query(
+                "UPDATE users SET orders = $1, reward_points = $2 WHERE user_id = $3",
+                [JSON.stringify(orders), rewardPoints, user.id]
+            );
+
+            await client.query(
+                "UPDATE users SET order_requests = $1 WHERE user_id = $2",
+                [JSON.stringify(creatorOrders), creatorId]
+            );
+
+            await client.query("COMMIT");
+        } catch (error) {
+            await client.query("ROLLBACK");
+            throw error;
+        } finally {
+            client.release();
         }
 
-        // Return a success response
         return res.status(200).json({
             message: "Order canceled successfully and reward points deducted",
             orders: orders,
             total_orders: orders.length,
+            reward_points: rewardPoints
         });
 
     } catch (error) {
