@@ -25,7 +25,7 @@ const SignUp = async (req, res) => {
             [username, email, hashPassword]
         );
         const token = generateJwt({
-            id: newUser.rows[0].user_id,
+        id: newUser.rows[0].user_id,
             username: newUser.rows[0].username,
             email: newUser.rows[0].email,
             rewardPoints : newUser.rows[0].rewardPoints,
@@ -61,7 +61,6 @@ const Login = async (req, res) => {
                 message : "Enter all details."
             })
         }
-
         const existingUser = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
         if (existingUser.rows.length === 0) {
             return res.status(400).json({ message: "User not found. Try Sign Up" });
@@ -84,7 +83,6 @@ const Login = async (req, res) => {
             maxAge: 1 * 60 * 60 * 1000,
             sameSite: "strict",
         });
-
         return res.json({ message: "Login Successful" });
     } catch (error) {
         console.log("Login Error:", error);
@@ -123,7 +121,7 @@ const checkUser = async (req, res) => {
 
         res.json({
             user: {
-                id: actualUser.id,
+                id: actualUser.user_id,
                 email: actualUser.email,
                 username: actualUser.username,
                 role: actualUser.role,

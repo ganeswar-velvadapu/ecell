@@ -76,29 +76,23 @@ const editProduct = async (req, res) => {
         const email = user.email;
         const { productId } = req.params;
         const { product_price, product_name, image_url, product_description } = req.body;
-
         const actualUserQuery = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
         const actualUser = actualUserQuery.rows[0];
-
         if (actualUser.role != "Admin") {
             return res.status(403).json({ message: "You are not allowed to add product" });
         }
-
         const productQuery = await pool.query("SELECT * FROM products WHERE product_id = $1", [productId]);
         if (productQuery.rows.length === 0) {
             return res.status(404).json({ message: "Product not found." });
         }
-
         const product = productQuery.rows[0];
         if (product.created_by !== actualUser.user_id) {
             return res.status(403).json({ message: "You are not authorized to update this product." });
         }
-
         const updatedProduct = await pool.query(
             "UPDATE products SET product_price = $1, product_name = $2, image_url = $3, product_description = $4 WHERE product_id = $5 RETURNING *",
             [product_price, product_name, image_url, product_description, productId]
         );
-
         return res.json({
             message: "Product updated successfully.",
             product: updatedProduct.rows[0]
@@ -242,7 +236,6 @@ const getOrders = async (req, res) => {
         if (actualOrderQuery.rowCount === 0) {
             return res.status(404).json({ message: "User not found" });
         }
-
         let orders = actualOrderQuery.rows[0].orders || [];
         if (typeof orders === "string") {
             orders = JSON.parse(orders);

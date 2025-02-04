@@ -22,6 +22,7 @@ const ProductDetails = () => {
             try {
                 const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/products/${id}`);
                 setProduct(response.data.product);
+                setEditedProduct(response.data.product);
             } catch (error) {
                 console.log("Error fetching product:", error);
             }
@@ -30,37 +31,54 @@ const ProductDetails = () => {
         fetchProduct();
     }, [id]);
 
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await axios.put(
+                `${import.meta.env.VITE_BACKEND_URL}/api/products/${id}`,
+                editedProduct,
+                { withCredentials: true }
+            );
+            setProduct(response.data.product);
+            setIsEditing(false);
+        } catch (error) {
+            console.log("Error updating product:", error);
+        }
+    };
+
+    const handleDelete = async () => {
+        try {
+            setProduct(true)
+            await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/products/${id}`, {
+                withCredentials: true,
+            });
+            navigate("/products");
+        } catch (error) {
+            console.log("Error deleting product:", error);
+        }
+    };
+
     const handleBuyNow = () => {
         setIsCheckingOut(true);
     };
 
     const handleCheckoutSubmit = async (e) => {
-        setProduct(false)
         e.preventDefault();
         try {
-            const response = axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/products/${id}/buy`,{
-                mobile:checkoutDetails.mobile,
-                address:checkoutDetails.address
-            },{
-                withCredentials:true
-            })
-            
-            navigate("/orders")
+            await axios.post(
+                `${import.meta.env.VITE_BACKEND_URL}/api/products/${id}/buy`,
+                {
+                    mobile: checkoutDetails.mobile,
+                    address: checkoutDetails.address,
+                },
+                { withCredentials: true }
+            );
+            navigate("/orders");
         } catch (error) {
-            console.log("Error",error)
+            console.log("Error", error);
         }
         setIsCheckingOut(false);
     };
-
-    const confirmOrder = () =>{
-        setLoading(true)
-        try {
-            
-        } catch (error) {
-            console.log(error)
-            setLoading(false)
-        }
-    }
 
     if (!product) {
         return (
@@ -71,7 +89,6 @@ const ProductDetails = () => {
     }
 
     const isOwner = user && product.created_by === user.id;
-
     return (
         <>
             <Navbar />
@@ -100,7 +117,7 @@ const ProductDetails = () => {
                                 Original Price : ${product.product_price}
                             </p>
                             <p className="text-3xl font-semibold text-black mb-4">
-                                Discounted Price : ${product.product_price - (user.reward_points)/10}
+                                Discounted Price : ${product.product_price - (user.reward_points) / 10}
                             </p>
                             <div className="h-px bg-gray-200 my-4"></div>
                             <p className="text-gray-700 leading-relaxed">
@@ -134,6 +151,82 @@ const ProductDetails = () => {
                     </div>
                 </div>
 
+                {isEditing && (
+                    <form onSubmit={handleEditSubmit} className="p-6 bg-gray-100 rounded-lg mt-6">
+                        <h2 className="text-2xl font-bold mb-4">Edit Product</h2>
+                        <label className="block mb-2">Product Name</label>
+                        <input
+                            type="text"
+                            className="w-full p-2 border border-gray-300 rounded"
+                            value={editedProduct.product_name}
+                            onChange={(e) => setEditedProduct({ ...editedProduct, product_name: e.target.value })}
+                            required
+                        />
+
+                        <label className="block mt-4 mb-2">Product Price</label>
+                        <input
+                            type="number"
+                            className="w-full p-2 border border-gray-300 rounded"
+                            value={editedProduct.product_price}
+                            onChange={(e) => setEditedProduct({ ...editedProduct, product_price: e.target.value })}
+                            required
+                        />
+
+                        <label className="block mt-4 mb-2">Image URL</label>
+                        <input
+                            type="text"
+                            className="w-full p-2 border border-gray-300 rounded"
+                            value={editedProduct.image_url}
+                            onChange={(e) => setEditedProduct({ ...editedProduct, image_url: e.target.value })}
+                            required
+                        />
+
+                        <label className="block mt-4 mb-2">Product Description</label>
+                        <textarea
+                            className="w-full p-2 border border-gray-300 rounded"
+                            value={editedProduct.product_description}
+                            onChange={(e) => setEditedProduct({ ...editedProduct, product_description: e.target.value })}
+                            required
+                        />
+
+                        <button
+                            type="submit"
+                            className="mt-4 w-full bg-black text-white py-2 px-4 rounded hover:bg-gray-800"
+                        >
+                            Save Changes
+                        </button>
+                        <button
+                            type="button"
+                            className="mt-4 w-full bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600"
+                            onClick={() => setIsEditing(false)}
+                        >
+                            Cancel
+                        </button>
+                    </form>
+                )}
+
+                {showDeleteConfirm && (
+                    <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center">
+                        <div className="bg-white p-6 rounded-lg">
+                            <h2 className="text-2xl font-bold mb-4">Are you sure you want to delete this product?</h2>
+                            <div className="flex space-x-4">
+                                <button
+                                    className="w-full bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700"
+                                    onClick={handleDelete}
+                                >
+                                    Yes, Delete
+                                </button>
+                                <button
+                                    className="w-full bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600"
+                                    onClick={() => setShowDeleteConfirm(false)}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {isCheckingOut && (
                     <form onSubmit={handleCheckoutSubmit} className="p-6 bg-gray-100 rounded-lg mt-6">
                         <h2 className="text-2xl font-bold mb-4">Checkout</h2>
@@ -159,7 +252,6 @@ const ProductDetails = () => {
                         <button
                             type="submit"
                             className="mt-4 w-full bg-black text-white py-2 px-4 rounded hover:bg-gray-800"
-                            onClick={confirmOrder}
                         >
                             Confirm Order
                         </button>

@@ -65,4 +65,4 @@ const Combo = () => {
   );
 };
 
-export default Combowww;
+export default Combo;
