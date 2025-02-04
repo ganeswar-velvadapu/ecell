@@ -104,20 +104,39 @@ const Logout = (req, res) => {
     })
 };
 
-
-const checkUser = (req,res) =>{
+const checkUser = async (req, res) => {
     try {
-        const token = req.cookies.token; 
+        const token = req.cookies.token;
         if (!token) {
             return res.status(401).json({ message: "Not authenticated" });
         }
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        res.json({ user: decoded }); 
 
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const email = decoded.email;
+
+        const actualUserQuery = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+        const actualUser = actualUserQuery.rows[0];
+
+        if (!actualUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.json({
+            user: {
+                id: actualUser.id,
+                email: actualUser.email,
+                username: actualUser.username,
+                role: actualUser.role,
+                reward_points: actualUser.reward_points,
+                exp: decoded.exp,
+                iat: decoded.iat,
+            },
+        });
     } catch (error) {
         return res.status(401).json({ message: "Invalid token" });
     }
-}
+};
+
 
 function generateJwt({ id, username, email,reward_points,role }) {
     return jwt.sign(
