@@ -29,7 +29,9 @@ export const AuthProvider = ({ children }) => {
     try {
       await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, { email, password }, { withCredentials: true });
       const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/me`, { withCredentials: true });
+      console.log(res)
       setUser(res.data.user);
+
       navigate("/"); 
     } catch (error) {
       console.log("Login failed:", error.response?.data?.message || "Unknown error");

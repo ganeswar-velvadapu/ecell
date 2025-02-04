@@ -12,6 +12,7 @@ import Profile from './pages/Profile/Profile.jsx'
 import AddProduct from './pages/Products/AddProduct.jsx'
 import MyOrders from './pages/Products/MyOrders.jsx'
 import OrderRequest from './pages/Products/OrderRequest.jsx'
+import Combos from './pages/Combos/Combos.jsx'
 
 function App() {
   return (
@@ -54,6 +55,11 @@ function App() {
           <Route path="/requests" element={
             <ProtectedRoute>
               <OrderRequest/>
+            </ProtectedRoute>
+          } />
+          <Route path="/combos" element={
+            <ProtectedRoute>
+              <Combos/>
             </ProtectedRoute>
           } />
         </Routes>

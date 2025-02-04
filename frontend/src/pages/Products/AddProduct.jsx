@@ -11,7 +11,8 @@ const AddProduct = () => {
     productDescription: '',
     productPrice: '',
     manufacturer: '',
-    imageUrl: ''
+    imageUrl: '',
+    isComboOffer: false
   });
 
   const [errors, setErrors] = useState({});
@@ -50,13 +51,11 @@ const AddProduct = () => {
     setApiError("");
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/products`, formData,{
-        withCredentials:true
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/products`, formData, {
+        withCredentials: true
       });
 
-      if (response.status === 201) {
         navigate("/products"); 
-      }
     } catch (error) {
       setApiError(error.response?.data?.message || "Failed to add product. Please try again.");
     } finally {
@@ -65,8 +64,11 @@ const AddProduct = () => {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value
+    }));
 
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -75,7 +77,7 @@ const AddProduct = () => {
 
   return (
     <div>
-      <Navbar/>
+      <Navbar />
       <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm mt-20 mb-2">
         <h2 className="text-3xl font-bold text-gray-900 mb-8">Add New Product</h2>
 
@@ -120,6 +122,21 @@ const AddProduct = () => {
             </div>
           ))}
 
+          {/* Combo Offer Checkbox */}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isComboOffer"
+              name="isComboOffer"
+              checked={formData.isComboOffer}
+              onChange={handleChange}
+              className="w-5 h-5 text-black border-gray-300 rounded focus:ring-black"
+            />
+            <label htmlFor="isComboOffer" className="text-sm font-medium text-gray-700">
+              Is it a combo offer?
+            </label>
+          </div>
+
           {formData.imageUrl && (
             <div>
               <p className="block text-sm font-medium text-gray-700 mb-2">Image Preview</p>
@@ -146,7 +163,7 @@ const AddProduct = () => {
           </div>
         </form>
       </div>
-      <Footer/>
+      <Footer />
     </div>
   );
 };

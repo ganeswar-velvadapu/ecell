@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FiShoppingCart, FiUser, FiMenu, FiX } from "react-icons/fi";
+import { FiUser, FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../../Context/AuthContext";
 
 const Navbar = () => {

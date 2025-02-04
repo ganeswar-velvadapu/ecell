@@ -17,10 +17,9 @@ const Profile = () => {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchUserData(); 
-    }
-  }, [user]); 
+    fetchUserData();  
+  }, []);  
+  
 
   return (
     <div>

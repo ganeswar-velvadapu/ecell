@@ -44,6 +44,7 @@ const ProductDetails = () => {
             },{
                 withCredentials:true
             })
+            
             navigate("/orders")
         } catch (error) {
             console.log("Error",error)
