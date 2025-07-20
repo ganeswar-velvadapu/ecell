@@ -4,18 +4,6 @@ This is a full-stack e-commerce application built with  Express, React, Node.js 
 
 ---
 
-## Features
-
-* **User Authentication**: Secure user registration and login system using JSON Web Tokens (JWTs).
-* **Role-Based Access Control**: Separate routes and permissions for regular users and administrators.
-* **Product Management (Admin)**: Administrators can create, read, update, and delete products from the database.
-* **Shopping Cart**: Users can add products to their cart, view the cart.
-* **Order Management (Admin)**: Administrators can view and manage all user orders.
-* **Customer Loyalty Program**: A simple reward points system for customers.
-* **Responsive UI**: A clean and user-friendly interface built with React.
-
----
-
 ## Tech Stack
 
 * **Frontend**: React, React Router
