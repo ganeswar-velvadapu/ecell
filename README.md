@@ -1,4 +1,4 @@
-# E-Cell E-Commerce Platform
+# E-Commerce Platform
 
 This is a full-stack e-commerce application built with the MERN stack (MongoDB, Express, React, Node.js) and using PostgreSQL as the database. It features a complete user authentication system, product management, and order processing workflow.
 
